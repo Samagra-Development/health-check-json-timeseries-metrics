@@ -6,5 +6,6 @@ export interface HealthCheck {
       message?: string;
     };
   };
-  requestTime?: number
+  requestTime?: number,
+  responseCode: number
 }

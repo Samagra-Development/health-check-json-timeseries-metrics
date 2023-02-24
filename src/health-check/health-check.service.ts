@@ -39,7 +39,8 @@ export class HealthCheckService {
         let newResponse = {
           status: 'ok',
           details: {},
-          requestTime: endTime-startTime
+          requestTime: endTime-startTime,
+          responseCode: 200
         }
         if (Object.keys(data)) {
           for (const key of Object.keys(data)) {
@@ -53,15 +54,18 @@ export class HealthCheckService {
         data['details'] = {};
       }
       data['requestTime'] = endTime-startTime
+      data['responseCode'] = 200;
       return data;
     } catch (err) {
       if (err?.response?.data?.details) {
+        err.response.data['responseCode'] = err?.response?.status ?? 0
         return err.response.data
       }
       return {
         status: 'error',
         details: {},
         requestTime: new Date().getTime() - startTime,
+        responseCode: err?.response?.status ?? 0
       };
     }
   }
@@ -72,7 +76,7 @@ export class HealthCheckService {
 
     // Add a metric for the overall status of the application
     const appStatus = this.serviceUpStrings.includes(healthCheck.status) ? 1 : 0;
-    const appStatusMetric = `health_check_status{service="${service}",status=${appStatus}, request_time=${healthCheck.requestTime ?? 0}} 0 ${timestamp}`;
+    const appStatusMetric = `health_check_status{service="${service}",status=${appStatus}, request_time=${healthCheck.requestTime ?? 0}, response_code=${healthCheck.responseCode} 0 ${timestamp}`;
     metrics.push(appStatusMetric);
 
     // Add a metric for each component's status and details
