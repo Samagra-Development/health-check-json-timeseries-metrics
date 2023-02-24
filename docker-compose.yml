@@ -1,0 +1,11 @@
+version: '3.7'
+
+services:
+  main:
+    container_name: health-check-json-time-series-metrics
+    build:
+      context: .
+    ports:
+      - ${PORT}:3000
+    env_file:
+      - .env

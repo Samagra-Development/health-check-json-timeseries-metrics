@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { HealthCheck } from "../interfaces/health-check.interface";
 import { HttpService } from "@nestjs/axios";
 import { ConfigService } from "@nestjs/config";
@@ -7,19 +7,25 @@ import { ConfigService } from "@nestjs/config";
 export class HealthCheckService {
   private readonly services: Array<{name: string, url: string}>;
   private static serviceUpStrings: Array<string> = ["ok", "OK", "Ok", "working", "up", "UP", "healthy"];
+
+  protected readonly logger = new Logger(HealthCheckService.name); // logger instance
+
   constructor(private httpService: HttpService, private readonly configService: ConfigService,) {
     const services = configService.get<string>('SERVICES');
     this.services = JSON.parse(services); // load & store all services to monitor
   }
 
   async getMetrics(): Promise<string> {
+    this.logger.log('Starting health check...');
     let allMetrics = [];
     for (const service of this.services) {
+      this.logger.log(`Requesting for ${service['name']}: ${service['url']}..`)
       const healthCheckData = await this.fetchHealthCheck(service['url']);
-      console.log(healthCheckData);
+      this.logger.log(`Done.. Status: ${healthCheckData['status']}, Time taken: ${healthCheckData['requestTime']} ms`);
       const metrics = HealthCheckService.healthCheckToTimeSeries(service['name'], healthCheckData);
       allMetrics = allMetrics.concat(metrics);
     }
+    this.logger.log('Finished!!');
     return allMetrics.join('\n');
   }
 
