@@ -15,7 +15,7 @@ export class HealthCheckService {
     this.services = JSON.parse(services); // load & store all services to monitor
   }
 
-  async getMetrics(): Promise<string> {
+  async getMetrics(): Promise<Array<string>> {
     this.logger.log('Starting health check...');
     let allMetrics = [];
     for (const service of this.services) {
@@ -26,7 +26,7 @@ export class HealthCheckService {
       allMetrics = allMetrics.concat(metrics);
     }
     this.logger.log('Finished!!');
-    return allMetrics.join('\n');
+    return allMetrics;
   }
 
   private async fetchHealthCheck(url: string): Promise<HealthCheck> {

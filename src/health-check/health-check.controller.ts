@@ -7,10 +7,7 @@ export class HealthCheckController {
 
   @Get()
   @Render('metrics')
-  // @Header('Content-Type', 'text/plain')
-  // @Header('Content-Encoding', 'gzip')
   async getMetrics() {
-    // return await this.metricsService.getMetrics();
     return { metrics: await this.metricsService.getMetrics()};
   }
 }
