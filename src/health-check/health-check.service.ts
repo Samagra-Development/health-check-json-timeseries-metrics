@@ -77,8 +77,9 @@ export class HealthCheckService {
 
     // Add a metric for the overall status of the application
     const appStatus = this.serviceUpStrings.includes(healthCheck.status) ? 1 : 0;
-    const appStatusMetric = `health_check_status{service="${service}", request_time="${healthCheck.requestTime ?? 0}", response_code="${healthCheck.responseCode}"} ${appStatus} ${timestamp}`;
-    metrics.push(appStatusMetric);
+    metrics.push(`health_check_response_status{service="${service}"} ${appStatus} ${timestamp}`);
+    metrics.push(`health_check_response_time{service="${service}"} ${healthCheck.requestTime ?? 0} ${timestamp}`);
+    metrics.push(`health_check_response_code{service="${service}"} ${healthCheck.responseCode} ${timestamp}`);
 
     // Add a metric for each component's status and details
     const details = healthCheck.details;
