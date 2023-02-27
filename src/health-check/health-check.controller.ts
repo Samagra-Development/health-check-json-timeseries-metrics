@@ -1,4 +1,4 @@
-import { Controller, Get, Render } from "@nestjs/common";
+import { Controller, Get, Header, Render } from "@nestjs/common";
 import { HealthCheckService } from "./health-check.service";
 
 @Controller('metrics')
@@ -7,6 +7,7 @@ export class HealthCheckController {
 
   @Get()
   @Render('metrics')
+  @Header('Content-Type', 'text/plain')
   async getMetrics() {
     return { metrics: await this.metricsService.getMetrics()};
   }

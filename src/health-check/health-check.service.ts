@@ -22,6 +22,7 @@ export class HealthCheckService {
       this.logger.log(`Requesting for ${service['name']}: ${service['url']}..`)
       const healthCheckData = await this.fetchHealthCheck(service['url']);
       this.logger.log(`Done.. Status: ${healthCheckData['status']}, Time taken: ${healthCheckData['requestTime']} ms`);
+      allMetrics.push(`# For service: ${service['name']}`);
       const metrics = HealthCheckService.healthCheckToTimeSeries(service['name'], healthCheckData);
       allMetrics = allMetrics.concat(metrics);
     }
