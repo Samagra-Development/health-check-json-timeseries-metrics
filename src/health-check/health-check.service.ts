@@ -43,8 +43,12 @@ export class HealthCheckService {
           requestTime: endTime-startTime,
           responseCode: 200
         }
-        if (HealthCheckService.isJson(data) && Object.keys(data)) {
-          // if the response is a valid JSON & has keys, we'll consider it as keys
+
+        if (HealthCheckService.isJson(data)) {
+          data = JSON.parse(data);  // convert to JSON
+        }
+        if (typeof data == 'object' && Object.keys(data)) {
+          // if the response is a valid Object & has keys, we'll consider it as keys
           for (const key of Object.keys(data)) {
             newResponse.details[key] = {
               status: data[key].status ?? data[key]
