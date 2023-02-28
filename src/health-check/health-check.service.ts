@@ -11,7 +11,7 @@ export class HealthCheckService {
   protected readonly logger = new Logger(HealthCheckService.name); // logger instance
 
   constructor(private httpService: HttpService, private readonly configService: ConfigService,) {
-    const services = configService.get<string>('SERVICES');
+    const services = configService.get<string>('SERVICES'); // read the json from env file
     this.services = JSON.parse(services); // load & store all services to monitor
   }
 
@@ -43,7 +43,8 @@ export class HealthCheckService {
           requestTime: endTime-startTime,
           responseCode: 200
         }
-        if (Object.keys(data)) {
+        if (HealthCheckService.isJson(data) && Object.keys(data)) {
+          // if the response is a valid JSON & has keys, we'll consider it as keys
           for (const key of Object.keys(data)) {
             newResponse.details[key] = {
               status: data[key].status ?? data[key]
@@ -91,5 +92,14 @@ export class HealthCheckService {
     }
 
     return metrics;
+  }
+
+  private static isJson(str) {
+    try {
+      JSON.parse(str);
+    } catch (e) {
+      return false;
+    }
+    return true;
   }
 }
