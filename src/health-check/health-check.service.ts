@@ -20,7 +20,8 @@ export class HealthCheckService {
     let allMetrics = [];
     for (const service of this.services) {
       this.logger.log(`Requesting for ${service['name']}: ${service['url']}..`)
-      const healthCheckData = await this.fetchHealthCheck(service['url']);
+      const timeout = service['timeout'] ?? 2000;
+      const healthCheckData = await this.fetchHealthCheck(service['url'], timeout);
       this.logger.log(`Done.. Status: ${healthCheckData['status']}, Time taken: ${healthCheckData['requestTime']} ms`);
       allMetrics.push(`# For service: ${service['name']}`);
       const metrics = HealthCheckService.healthCheckToTimeSeries(service['name'], healthCheckData);
@@ -30,10 +31,12 @@ export class HealthCheckService {
     return allMetrics;
   }
 
-  private async fetchHealthCheck(url: string): Promise<HealthCheck> {
+  private async fetchHealthCheck(url: string, timeout: number): Promise<HealthCheck> {
     const startTime = new Date().getTime();
     try {
-      const response = await this.httpService.get(url).toPromise();
+      const response = await this.httpService.get(url, {
+        timeout: timeout
+      }).toPromise();
       const endTime = new Date().getTime();
       let data = response.data;
       if (!data.status && !data.details) {
