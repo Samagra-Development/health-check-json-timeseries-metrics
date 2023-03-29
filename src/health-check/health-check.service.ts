@@ -5,6 +5,8 @@ import { ConfigService } from "@nestjs/config";
 
 @Injectable()
 export class HealthCheckService {
+  private readonly serviceDefaultTimeout: number;
+  private readonly maxExecutionTimeout: number;
   private readonly services: Array<{name: string, url: string}>;
   private static serviceUpStrings: Array<string> = ["ok", "OK", "Ok", "working", "up", "UP", "healthy"];
 
@@ -12,23 +14,45 @@ export class HealthCheckService {
 
   constructor(private httpService: HttpService, private readonly configService: ConfigService,) {
     const services = configService.get<string>('SERVICES'); // read the json from env file
+    this.serviceDefaultTimeout = configService.get<number>('SERVICE_PING_DEFAULT_TIMOUT');
+    this.maxExecutionTimeout = configService.get<number>('MAX_EXECUTION_TIMEOUT');
     this.services = JSON.parse(services); // load & store all services to monitor
   }
 
   async getMetrics(): Promise<Array<string>> {
+    const startTime = (new Date()).getTime();
     this.logger.log('Starting health check...');
     let allMetrics = [];
+    let finishedCounter = 0;
     for (const service of this.services) {
       this.logger.log(`Requesting for ${service['name']}: ${service['url']}..`)
-      const timeout = service['timeout'] ?? 2000;
-      const healthCheckData = await this.fetchHealthCheck(service['url'], timeout);
-      this.logger.log(`Done.. Status: ${healthCheckData['status']}, Time taken: ${healthCheckData['requestTime']} ms`);
-      allMetrics.push(`# For service: ${service['name']}`);
-      const metrics = HealthCheckService.healthCheckToTimeSeries(service['name'], healthCheckData);
-      allMetrics = allMetrics.concat(metrics);
+      const timeout = service['timeout'] ?? this.serviceDefaultTimeout; // passing timeout
+
+      // We are asynchronously calling the health check APIs for all the services
+      this.fetchHealthCheck(service['url'], timeout).then((healthCheckData) => {
+        this.logger.log(`Done.. ${service['name']} Status: ${healthCheckData['status']}, Time taken: ${healthCheckData['requestTime']} ms`);
+        allMetrics.push(`# For service: ${service['name']}`);
+        const metrics = HealthCheckService.healthCheckToTimeSeries(service['name'], healthCheckData);
+        allMetrics = allMetrics.concat(metrics);
+        finishedCounter++;  // increment the finishedCounter
+      }).catch((error) => {
+        this.logger.error(error);
+      });
     }
-    this.logger.log('Finished!!');
-    return allMetrics;
+
+    while (true) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      if (finishedCounter == this.services.length) {
+        // if all the requests have been finished, we'll terminate the loop.
+        break;
+      } else if (((new Date()).getTime() - startTime) / 1000 > this.maxExecutionTimeout) {
+        // if we are waiting longer than then max allowed execution time, we'll terminate the loop
+        break;
+      }
+    }
+
+    this.logger.log(`Finished!! (${finishedCounter}/${this.services.length} finished in ${((new Date()).getTime() - startTime) / 1000} seconds)`);
+    return allMetrics;  // at last, return all the computed metrices
   }
 
   private async fetchHealthCheck(url: string, timeout: number): Promise<HealthCheck> {
