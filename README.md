@@ -28,7 +28,7 @@ The app currently supports only GET endpoints for health check.
 4. Metrics will be exposed at 'http://localhost:xxxx/metrics'
 
 ### Environment variables
-- `SERVICES`: a JSON array containing objects defining a specific service; `{"name": "Some Name", "url": "some-url", "timeout": 2000}`
+- `SERVICES`: a JSON array containing objects defining a specific service; `{"name": "Some Name", "url": "some-url", "timeout": 2000, "request_method": "GET", "headers": {"Authorization": "Bearer token"}}`
 - `PORT`: port to expose the service on docker host
 - `SERVICE_PING_DEFAULT_TIMOUT`: Default timeout for the services configured in the `SERVICES` array. If `timeout` is not defined in the object, this will be used by default.
 - `MAX_EXECUTION_TIMEOUT`: Maximum time the endpoint should wait before sending response of the `/metrics` endpoint. It must be configured carefully as per the below conditions:
