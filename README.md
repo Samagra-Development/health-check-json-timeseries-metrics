@@ -38,6 +38,6 @@ The app currently supports only GET endpoints for health check.
 ### TODOs
 
 - [x] Documentation
-- [ ] Add support for request methods other than `GET`
-- [ ] Add various authentication mechanism support for individual services
+- [x] Add support for request methods other than `GET`
+- [x] Add various authentication mechanism support for individual services
 - [ ] More generic & configurable for status strings

@@ -7,7 +7,7 @@ import { ConfigService } from "@nestjs/config";
 export class HealthCheckService {
   private readonly serviceDefaultTimeout: number;
   private readonly maxExecutionTimeout: number;
-  private readonly services: Array<{name: string, url: string}>;
+  private readonly services: Array<{name: string, url: string, timeout?: number, request_method?: string, headers?: object}>;
   private static serviceUpStrings: Array<string> = ["ok", "OK", "Ok", "working", "up", "UP", "healthy"];
 
   protected readonly logger = new Logger(HealthCheckService.name); // logger instance
@@ -25,14 +25,13 @@ export class HealthCheckService {
     let allMetrics = [];
     let finishedCounter = 0;
     for (const service of this.services) {
-      this.logger.log(`Requesting for ${service['name']}: ${service['url']}..`)
-      const timeout = service['timeout'] ?? this.serviceDefaultTimeout; // passing timeout
+      this.logger.log(`Requesting for ${service.name}: ${service.url}..`)
 
       // We are asynchronously calling the health check APIs for all the services
-      this.fetchHealthCheck(service['url'], timeout).then((healthCheckData) => {
-        this.logger.log(`Done.. ${service['name']} Status: ${healthCheckData['status']}, Time taken: ${healthCheckData['requestTime']} ms`);
-        allMetrics.push(`# For service: ${service['name']}`);
-        const metrics = HealthCheckService.healthCheckToTimeSeries(service['name'], healthCheckData);
+      this.fetchHealthCheck(service).then((healthCheckData) => {
+        this.logger.log(`Done.. ${service.name} Status: ${healthCheckData['status']}, Time taken: ${healthCheckData['requestTime']} ms`);
+        allMetrics.push(`# For service: ${service.name}`);
+        const metrics = HealthCheckService.healthCheckToTimeSeries(service.name, healthCheckData);
         allMetrics = allMetrics.concat(metrics);
         finishedCounter++;  // increment the finishedCounter
       }).catch((error) => {
@@ -55,12 +54,40 @@ export class HealthCheckService {
     return allMetrics;  // at last, return all the computed metrices
   }
 
-  private async fetchHealthCheck(url: string, timeout: number): Promise<HealthCheck> {
+  private async fetchHealthCheck(service): Promise<HealthCheck> {
+    const url = service.url;
+    const timeout = service.timeout ?? this.serviceDefaultTimeout;
     const startTime = new Date().getTime();
+
+    // prepare headers
+    const headers =service.headers ?? {};
     try {
-      const response = await this.httpService.get(url, {
-        timeout: timeout
-      }).toPromise();
+      let response: any;
+      switch (service.request_method) {
+        case 'POST':
+          response = await this.httpService.post(url, null, {
+            timeout: timeout,
+            headers: headers
+          }).toPromise();
+          break;
+        case 'PATCH':
+          response = await this.httpService.patch(url, null, {
+            timeout: timeout,
+            headers: headers
+          }).toPromise();
+          break;
+        case 'PUT':
+          response = await this.httpService.put(url, null, {
+            timeout: timeout,
+            headers: headers
+          }).toPromise();
+          break;
+        default:
+          response = await this.httpService.get(url, {
+            timeout: timeout,
+            headers: headers
+          }).toPromise();
+      }
       const endTime = new Date().getTime();
       let data = response.data;
       if (!data.status && !data.details) {
